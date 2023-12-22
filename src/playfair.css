@@ -1,0 +1,42 @@
+/* Playfair Display Font - 400 (Regular) */
+@font-face {
+    font-family: 'Playfair Display';
+    font-weight: 400;
+    src: url('./assets/PlayfairDisplay/static/PlayfairDisplay-Regular.ttf') format('truetype');
+  }
+  
+  /* Playfair Display Font - 500 (Medium) */
+  @font-face {
+    font-family: 'Playfair Display';
+    font-weight: 500;
+    src: url('./assets/PlayfairDisplay/static/PlayfairDisplay-Medium.ttf') format('truetype');
+  }
+  
+  /* Playfair Display Font - 600 (Semi-Bold) */
+  @font-face {
+    font-family: 'Playfair Display';
+    font-weight: 600;
+    src: url('./assets/PlayfairDisplay/static/PlayfairDisplay-SemiBold.ttf') format('truetype');
+  }
+  
+  /* Playfair Display Font - 700 (Bold) */
+  @font-face {
+    font-family: 'Playfair Display';
+    font-weight: 700;
+    src: url('./assets/PlayfairDisplay/static/PlayfairDisplay-Bold.ttf') format('truetype');
+  }
+  
+  /* Playfair Display Font - 800 (Extra-Bold) */
+  @font-face {
+    font-family: 'Playfair Display';
+    font-weight: 800;
+    src: url('./assets/PlayfairDisplay/static/PlayfairDisplay-ExtraBold.ttf') format('truetype');
+  }
+  
+  /* Playfair Display Font - 900 (Black) */
+  @font-face {
+    font-family: 'Playfair Display';
+    font-weight: 900;
+    src: url('./assets/PlayfairDisplay/static/PlayfairDisplay-Black.ttf') format('truetype');
+  }
+  
