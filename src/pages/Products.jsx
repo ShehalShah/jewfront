@@ -6,8 +6,9 @@ import 'slick-carousel/slick/slick-theme.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHeart, faCartPlus, faMinus, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate, Link, useLocation, useParams } from 'react-router-dom';
-import { collection, addDoc, doc, getDoc,arrayUnion,arrayRemove,updateDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, arrayUnion, arrayRemove, updateDoc } from 'firebase/firestore';
 import { database, storage } from '../firebaseConfig';
+import ReactImageMagnify from 'react-image-magnify';
 
 const Product = () => {
     const user = JSON.parse(sessionStorage.getItem('user'));
@@ -42,45 +43,45 @@ const Product = () => {
     const handleWishlistToggle = async () => {
         setWishlistSelected(!isWishlistSelected);
         if (!user) {
-          navigate('/login');
-          return;
+            navigate('/login');
+            return;
         }
-    
+
         try {
-          const userDocRef = doc(database, 'users', user.id);
-    
-          if (isWishlistSelected) {
-            await updateDoc(userDocRef, {
-              wishlist: arrayRemove(id),
-            });
-          } else {
-            await updateDoc(userDocRef, {
-              wishlist: arrayUnion(id),
-            });
-          }
-    
-          setWishlistSelected(!isWishlistSelected);
+            const userDocRef = doc(database, 'users', user.id);
+
+            if (isWishlistSelected) {
+                await updateDoc(userDocRef, {
+                    wishlist: arrayRemove(id),
+                });
+            } else {
+                await updateDoc(userDocRef, {
+                    wishlist: arrayUnion(id),
+                });
+            }
+
+            setWishlistSelected(!isWishlistSelected);
         } catch (error) {
-          console.error('Error updating wishlist:', error.message);
+            console.error('Error updating wishlist:', error.message);
         }
-      };
-    
-      const handleAddToCart = async () => {
+    };
+
+    const handleAddToCart = async () => {
         if (!user) {
-          navigate('/login');
-          return;
+            navigate('/login');
+            return;
         }
-    
+
         try {
-          const userDocRef = doc(database, 'users', user.id);
-    
-          await updateDoc(userDocRef, {
-            cart: arrayUnion(id),
-          });
+            const userDocRef = doc(database, 'users', user.id);
+
+            await updateDoc(userDocRef, {
+                cart: arrayUnion(id),
+            });
         } catch (error) {
-          console.error('Error adding to cart:', error.message);
+            console.error('Error adding to cart:', error.message);
         }
-      };
+    };
 
     const handleQuantityChange = (value) => {
         setQuantity(quantity + value);
@@ -106,11 +107,18 @@ const Product = () => {
                     <Slider {...carouselSettings} className="mx-auto w-full h-full">
                         {productImages.map((image, index) => (
                             <div key={index}>
-                                <img
-                                    src={image}
-                                    alt={`Product ${index + 1}`}
-                                    className="w-full h-auto max-h-[30rem] object-cover"
-                                />
+                                <ReactImageMagnify {...{
+                                    smallImage: {
+                                        alt: 'Wristwatch by Ted Baker London',
+                                        isFluidWidth: true,
+                                        src: image
+                                    },
+                                    largeImage: {
+                                        src: image,
+                                        width: 1200,
+                                        height: 1800
+                                    }
+                                }} />
                             </div>
                         ))}
                     </Slider>
@@ -171,7 +179,7 @@ const Product = () => {
                             {isWishlistSelected ? 'Remove from Wishlist' : 'Add to Wishlist'}
                         </button>
                         <button className="w-1/2 bg-black text-white px-6 py-2 rounded">
-                            <FontAwesomeIcon icon={faCartPlus} className="mr-2" onClick={handleAddToCart}/>
+                            <FontAwesomeIcon icon={faCartPlus} className="mr-2" onClick={handleAddToCart} />
                             Add to Cart
                         </button>
                     </div>
