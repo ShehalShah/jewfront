@@ -1,19 +1,20 @@
-import React, { useState,useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
-import { useUser } from '../context/UserContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { database } from '../firebaseConfig';
-import { doc, setDoc, getDoc, collection,updateDoc,onSnapshot } from "firebase/firestore";
+import { doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
+import AddProduct from '../components/AddProduct';
 
 const Admin = () => {
   const user = JSON.parse(sessionStorage.getItem('user'));
-  const [activeTab, setActiveTab] = useState('profile'); 
+  const [activeTab, setActiveTab] = useState('profile');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [goldRate, setGoldRate] = useState(0);
-  const nav = useNavigate()
+  const nav = useNavigate();
 
   const tabs = [
     { id: 'profile', label: 'Profile' },
+    { id: 'addProduct', label: 'Add Product' },
     { id: 'editPrices', label: 'Edit Prices' },
     { id: 'editGoldRate', label: 'Edit Gold Rate' },
     { id: 'manageOrders', label: 'Manage Orders' },
@@ -21,7 +22,7 @@ const Admin = () => {
   ];
 
   useEffect(() => {
-    if (user && !user.isAdmin) {
+    if (!user || !user.isAdmin) {
       nav('/');
     }
   }, [user]);
@@ -29,14 +30,13 @@ const Admin = () => {
   const fetchGoldRate = () => {
     try {
       const goldRateDocRef = doc(database, 'gold', 'rate');
-  
+
       const unsubscribe = onSnapshot(goldRateDocRef, (goldRateDocSnapshot) => {
         if (goldRateDocSnapshot.exists()) {
           setGoldRate(goldRateDocSnapshot.data().value);
         }
       });
-  
-      // Return the unsubscribe function to stop listening when component unmounts
+
       return () => unsubscribe();
     } catch (error) {
       console.error('Error fetching gold rate:', error.message);
@@ -54,10 +54,8 @@ const Admin = () => {
   };
 
   useEffect(() => {
-    // Fetch gold rate and subscribe to real-time updates on component mount
     const unsubscribe = fetchGoldRate();
-  
-    // Unsubscribe when component unmounts
+
     return () => unsubscribe();
   }, []);
 
@@ -71,7 +69,7 @@ const Admin = () => {
         );
       case 'editGoldRate':
         return (
-            <div>
+          <div>
             <div className="mb-4">
               <h2 className="text-2xl font-bold mb-2">Edit Gold Rate</h2>
               <p className="mb-2">Current Gold Rate: ${goldRate}</p>
@@ -104,6 +102,10 @@ const Admin = () => {
           <div>
             <p>View business analytics here</p>
           </div>
+        );
+      case 'addProduct':
+        return (
+          <AddProduct />
         );
       default:
         return (
@@ -142,7 +144,7 @@ const Admin = () => {
             </div>
             {isDropdownOpen && (
               <div className="mt-2">
-                {tabs.map(tab => (
+                {tabs.map((tab) => (
                   <div
                     key={tab.id}
                     onClick={() => {
@@ -163,7 +165,7 @@ const Admin = () => {
           <div className="w-full lg:w-1/4 pr-4 hidden lg:block">
             <div className="bg-white p-4 shadow-md mb-4 lg:mb-0">
               <div className="text-2xl font-bold mb-4">Admin Panel</div>
-              {tabs.map(tab => (
+              {tabs.map((tab) => (
                 <div
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
@@ -176,9 +178,7 @@ const Admin = () => {
           </div>
 
           <div className="w-full lg:w-3/4 pl-4">
-            <div className="bg-white p-4 shadow-md">
-              {renderTabContent()}
-            </div>
+            <div className="bg-white p-4 shadow-md">{renderTabContent()}</div>
           </div>
         </div>
       </div>

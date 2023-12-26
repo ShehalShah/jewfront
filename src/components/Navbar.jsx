@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faUser, faShoppingCart, faSignOutAlt  } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faUser, faShoppingCart, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate, Link } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { signOut } from 'firebase/auth';
-import { auth, database } from '../firebaseConfig'; 
+import { auth, database } from '../firebaseConfig';
+import { doc, setDoc, getDoc, collection, updateDoc, onSnapshot } from "firebase/firestore";
 
 const Navbar = () => {
     const user = JSON.parse(sessionStorage.getItem('user'));
@@ -15,6 +16,7 @@ const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const nav = useNavigate()
+    const [goldRate, setGoldRate] = useState(0);
 
     const toggleNavbar = () => {
         setIsOpen(!isOpen);
@@ -23,6 +25,28 @@ const Navbar = () => {
     const toggleDropdown = () => {
         setIsDropdownOpen(!isDropdownOpen);
     };
+
+    const fetchGoldRate = () => {
+        try {
+            const goldRateDocRef = doc(database, 'gold', 'rate');
+
+            const unsubscribe = onSnapshot(goldRateDocRef, (goldRateDocSnapshot) => {
+                if (goldRateDocSnapshot.exists()) {
+                    setGoldRate(goldRateDocSnapshot.data().value);
+                }
+            });
+
+            return () => unsubscribe();
+        } catch (error) {
+            console.error('Error fetching gold rate:', error.message);
+        }
+    };
+
+    useEffect(() => {
+        const unsubscribe = fetchGoldRate();
+
+        return () => unsubscribe();
+    }, []);
 
     const quotes = [
         "Discover the beauty of our exquisite jewelry.",
@@ -39,6 +63,10 @@ const Navbar = () => {
         autoplaySpeed: 3500,
         arrows: false,
     };
+
+    const handleCartClick=()=>{
+        console.log("feh");
+    }
 
     return (
         <nav>
@@ -78,10 +106,15 @@ const Navbar = () => {
                             className="w-4 absolute left-2 top-[55%] transform -translate-y-1/2 text-black lg:block"
                         />
                     </div>
-                    <div className="text-black font-bold text-xl absolute inset-x-0 text-center cursor-pointer hover:underline" onClick={()=>{nav("/")}}>
+                    <div className="text-black font-bold text-xl absolute inset-x-0 text-center cursor-pointer hover:underline" onClick={() => { nav("/") }}>
                         Jewellery Store
                     </div>
-                    <div className="flex gap-10">                        
+                    <div className="flex gap-10 z-10">
+                        <div className='text-sm items-center justify-center lg:flex flex-col hidden'>
+                            <span>Current Gold Rate:</span>
+                            <span>{goldRate}</span>
+                        </div>
+
                         <div
                             className="relative cursor-pointer flex items-center justify-center"
                             onMouseEnter={toggleDropdown}
@@ -90,15 +123,15 @@ const Navbar = () => {
                         >
                             <FontAwesomeIcon icon={faUser} className="text-black pb-2" />
                             {isDropdownOpen && (
-                                !user?
-                                <div className="absolute top-4  bg-white border border-gray-300 rounded-md z-20">
-                                    <button className="block w-full hover:bg-gray-200 p-2" onClick={()=>nav("/login")}>
-                                        Login
-                                    </button>
-                                    <button className='block w-full hover:bg-gray-200 p-2' onClick={()=>nav("/signup")}>Signup</button>
-                                </div>:
-                                <div className='absolute top-5  bg-white border border-gray-300 rounded-md z-20'>
-                                 <div className="flex items-center p-2">
+                                !user ?
+                                    <div className="absolute top-4  bg-white border border-gray-300 rounded-md z-20">
+                                        <button className="block w-full hover:bg-gray-200 p-2" onClick={() => nav("/login")}>
+                                            Login
+                                        </button>
+                                        <button className='block w-full hover:bg-gray-200 p-2' onClick={() => nav("/signup")}>Signup</button>
+                                    </div> :
+                                    <div className='absolute top-5  bg-white border border-gray-300 rounded-md z-20'>
+                                        <div className="flex items-center p-2">
                                             <img
                                                 src={user?.photoURL || 'https://cdn.iconscout.com/icon/free/png-256/free-user-1648810-1401302.png'}
                                                 alt="User Avatar"
@@ -112,14 +145,14 @@ const Navbar = () => {
                                         <button className="block w-full hover:bg-gray-200 p-2" onClick={() => nav("/profile")}>
                                             Profile
                                         </button>
-                                        <button className='block w-full hover:bg-gray-200 p-2' onClick={async() => {sessionStorage.removeItem("user"); await signOut(auth); updateUser(null);}}>
+                                        <button className='block w-full hover:bg-gray-200 p-2' onClick={async () => { sessionStorage.removeItem("user"); await signOut(auth); updateUser(null); }}>
                                             <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" />
                                             Sign Out
                                         </button>
-                                </div>
+                                    </div>
                             )}
                         </div>
-                        <FontAwesomeIcon icon={faShoppingCart} className="text-black mr-4" />
+                        <FontAwesomeIcon icon={faShoppingCart} className="text-black mr-4 lg:py-2" onClick={handleCartClick}/>
                     </div>
                 </div>
                 <div className={`lg:flex mt-4 px-20 items-center justify-center gap-10 ${isOpen ? 'block' : 'hidden'}`}>

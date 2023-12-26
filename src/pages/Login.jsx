@@ -30,15 +30,15 @@ const Login = () => {
       const userDocSnapshot = await getDoc(userDocRef);
   
       if (userDocSnapshot.exists()) {
-        const userData = userDocSnapshot.data();
+        const userData = {
+          id: userDocSnapshot.id,
+          ...userDocSnapshot.data(),
+        };
   
-        // Update the user context
         updateUser(userData);
   
-        // Store user data in session storage
         await sessionStorage.setItem('user', JSON.stringify(userData));
   
-        // Navigate based on isAdmin
         const destination = userData.isAdmin ? '/admin' : '/';
         nav(destination);
       }
@@ -46,6 +46,7 @@ const Login = () => {
       console.error('Login failed', error.message);
     }
   };
+  
 
   return (
     <div className='h-screen flex flex-col'>

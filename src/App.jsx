@@ -7,6 +7,7 @@ import ProductPage from './pages/Product';
 import { UserProvider } from './context/UserContext';
 import Profile from './pages/Profile';
 import Admin from './pages/Admin';
+import Product from './pages/Products';
 
 function App() {
 
@@ -35,6 +36,13 @@ function App() {
                 }
                 exact
                 path="/signup"
+              />
+              <Route
+                element={
+                    <Product />
+                }
+                exact
+                path="/product/:id"
               />
               <Route
                 element={

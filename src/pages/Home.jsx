@@ -1,10 +1,12 @@
-import React from 'react';
+import React,{useEffect,useState} from 'react';
 import Navbar from '../components/Navbar';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 import { useUser } from '../context/UserContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { database } from '../firebaseConfig';
+import { doc, setDoc, getDoc, onSnapshot,collection } from 'firebase/firestore';
 
 const Home = () => {
   const {user}=useUser()
@@ -67,6 +69,25 @@ const Home = () => {
     },
   ];
 
+  const [products1, setProducts] = useState([]);
+
+  useEffect(() => {
+    const productsCollection = collection(database, 'products');
+
+    const unsubscribe = onSnapshot(productsCollection, (snapshot) => {
+      const updatedProducts = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      setProducts(updatedProducts);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []); 
+
   return (
     <div>
       <Navbar />
@@ -95,6 +116,19 @@ const Home = () => {
               <div key={index} className="bg-white p-4 shadow-md">
                 <img src={category.image} alt={category.name} className="w-full h-auto mb-4" />
                 <div className="text-lg font-bold">{category.name}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-8">
+          <div className="text-2xl font-bold mb-4">Recently Added Products</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {products1.map((product) => (
+              <div key={product.id} className="bg-white p-4 cursor-pointer shadow-md hover:shadow-2xl" onClick={()=>{navigate(`/product/${product.id}`);}}>
+                <img src={product.images[0]} alt={product.productName} className="w-full h-auto mb-4" />
+                <div className="text-lg font-bold">{product.productName}</div>
+                <p className="text-gray-700">{product.description}</p>
               </div>
             ))}
           </div>
