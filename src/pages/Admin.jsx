@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import { useNavigate } from 'react-router-dom';
-import { database } from '../firebaseConfig';
+import { database,storage } from '../firebaseConfig';
 import { doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
 import AddProduct from '../components/AddProduct';
+import Papa from 'papaparse'; 
+import { ref, uploadBytes, getDownloadURL,list} from 'firebase/storage';
 
 const Admin = () => {
   const user = JSON.parse(sessionStorage.getItem('user'));
   const [activeTab, setActiveTab] = useState('profile');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [goldRate, setGoldRate] = useState(0);
+  const [fileData, setFileData] = useState(null); 
+  const [mediaFiles, setMediaFiles] = useState(null);
   const nav = useNavigate();
 
   const tabs = [
@@ -19,6 +23,7 @@ const Admin = () => {
     { id: 'editGoldRate', label: 'Edit Gold Rate' },
     { id: 'manageOrders', label: 'Manage Orders' },
     { id: 'analytics', label: 'Analytics' },
+    { id: 'uploadFile', label: 'Upload File' }, // Added a new tab for file upload
   ];
 
   useEffect(() => {
@@ -58,6 +63,145 @@ const Admin = () => {
 
     return () => unsubscribe();
   }, []);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    setFileData(file);
+  };
+
+  const processDataForFirebase = (data) => {
+    return data.map((item) => {
+      const {
+        "Product ID":ProductID,
+        Name,
+        Category,
+        "Sub Category":SubCategory,
+        Description,
+        "Standard Make": StandardMake,
+        "Possible makes": possibleMakes,
+        "Standard Color of Metal": StandardColor,
+        "Possible makes": possibleColors,
+        "disocunt narration": discountNarration,
+        discount,
+        "Gross Weight": GrossWeight,
+        "Diamond Weight": DiamondWeight,
+        "Solitaire Weight": SolitaireWeight,
+        "Stone Weight": StoneWeight,
+        "Making Charges Per Gm": MakingChargesPerGm,
+      } = item;
+      
+      const netWeight =
+        parseFloat(GrossWeight) - 0.2 * (parseFloat(DiamondWeight) + parseFloat(SolitaireWeight) + parseFloat(StoneWeight));
+  
+      return {
+        productID: ProductID,
+        name: Name,
+        category: Category,
+        subcategory: SubCategory.split(',').map((subcategory) => subcategory.trim()),
+        description: Description,
+        standardmake: StandardMake,
+        possiblemakes: possibleMakes.split(',').map((make) => make.trim()),
+        standardcolor: StandardColor,
+        possiblecolors: possibleColors.split(',').map((color) => color.trim()),
+        discountnarration: discountNarration,
+        discount: parseFloat(discount.replace(/,/g, '')),
+        weight: {
+          GrossWeight: parseFloat(GrossWeight),
+          DiamondWeight: parseFloat(DiamondWeight),
+          SolitaireWeight: parseFloat(SolitaireWeight),
+          StoneWeight: parseFloat(StoneWeight),
+          netWeight: parseFloat(netWeight.toFixed(2)), // Round to 2 decimal places
+        },
+        makingcharges: parseFloat(MakingChargesPerGm),
+      };
+    });
+  };
+
+  const handleLogData = () => {
+    if (fileData) {
+      Papa.parse(fileData, {
+        header: true,
+        complete: (result) => {
+          result.data.pop();
+          console.log('Parsed Data:', result.data);
+
+          const firebaseData = processDataForFirebase(result.data);
+          console.log(firebaseData);
+        },
+        error: (error) => {
+          console.error('Error parsing file:', error.message);
+        },
+      });
+    } else {
+      console.error('No file selected.');
+    }
+  };
+
+  const uploadAllFiles = async (files) => {
+    const storageRef = ref(storage, 'products');
+    const fileURLs = [];
+  
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const [productID, index] = file.name.split('_');
+      const fileType = file.type.split('/')[0]; // 'image' or 'video'
+      const filename = `${productID}_${index}.${fileType}`;
+      const fileRef = ref(storageRef, filename);
+  
+      try {
+        await uploadBytes(fileRef, file);
+        const downloadURL = await getDownloadURL(fileRef);
+        fileURLs.push({ productID, downloadURL });
+      } catch (error) {
+        console.error(`Error uploading ${fileType} for Product ID ${productID}:`, error.message);
+      }
+    }
+  
+    return fileURLs;
+  };
+  
+  const getAllImageDownloadURLs = async (productID) => {
+    try {
+      const storageRef = ref(storage, 'products', String(100));
+      const listResult = await list(storageRef);
+  
+      const downloadURLs = await Promise.all(
+        listResult.items
+          .filter((item) => item.name.startsWith(`100_`))
+          .map(async (item) => {
+            const downloadURL = await getDownloadURL(item);
+            return { fileName: item.name, downloadURL };
+          })
+      );
+  
+      console.log('Download URLs for Product ID', productID, ':', downloadURLs);
+      return downloadURLs;
+    } catch (error) {
+      console.error(`Error getting download URLs for Product ID ${productID}:`, error.message);
+      return [];
+    }
+  };
+  
+  
+  
+  const handleMediaChange = (e) => {
+    const files = e.target.files;
+    setMediaFiles(files);
+  };
+
+  const handleMediaUpload = () => {
+    if (mediaFiles) {
+      uploadAllFiles(mediaFiles)
+        .then((fileURLs) => {
+          console.log('Media files uploaded successfully:', fileURLs);
+        })
+        .catch((error) => {
+          console.error('Error uploading media files:', error.message);
+        });
+    } else {
+      console.error('No media files selected.');
+    }
+  };
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -104,8 +248,25 @@ const Admin = () => {
           </div>
         );
       case 'addProduct':
+        return <AddProduct />;
+      case 'uploadFile':
         return (
-          <AddProduct />
+          <div className='flex flex-col gap-5'>
+            <div>
+            <h2 className="text-2xl font-bold mb-2">Upload File</h2>
+            <input type="file" onChange={handleFileChange} className="mb-2" />
+            <button onClick={handleLogData} className="bg-teal-500 text-white p-2 rounded hover:bg-teal-600 cursor-pointer">
+              Log Data
+            </button>
+          </div>
+          <div>
+              <h2 className="text-2xl font-bold mb-2">Upload Images and Videos</h2>
+              <input type="file" onChange={handleMediaChange} className="mb-2" multiple />
+              <button onClick={getAllImageDownloadURLs} className="bg-teal-500 text-white p-2 rounded hover:bg-teal-600 cursor-pointer">
+                Upload Media Files
+              </button>
+            </div>
+          </div>
         );
       default:
         return (
