@@ -17,6 +17,9 @@ const Product = () => {
     const [quantity, setQuantity] = useState(1);
     const [isWishlistSelected, setWishlistSelected] = useState(false);
     const [product, setProduct] = useState(null);
+    const [selectedMake, setSelectedMake] = useState(product?.standardmake);
+    const [selectedColor, setSelectedColor] = useState(product?.standardcolor);
+    const [price, setprice] = useState(0);
 
     useEffect(() => {
         const productDocRef = doc(database, 'products', id);
@@ -30,6 +33,13 @@ const Product = () => {
                         id: productDocSnapshot.id,
                         ...productDocSnapshot.data(),
                     });
+
+                    console.log({
+                        id: productDocSnapshot.id,
+                        ...productDocSnapshot.data(),
+                    });
+                    setSelectedMake(productDocSnapshot?.data()?.standardmake)
+                    setSelectedColor(productDocSnapshot?.data()?.standardcolor)
                 } else {
                     console.error('Product not found');
                 }
@@ -46,7 +56,6 @@ const Product = () => {
             navigate('/login');
             return;
         }
-
         try {
             const userDocRef = doc(database, 'users', user.id);
 
@@ -72,6 +81,8 @@ const Product = () => {
             return;
         }
 
+    console.log("heyfwebfbwjf");
+
         try {
             const userDocRef = doc(database, 'users', user.id);
 
@@ -87,7 +98,7 @@ const Product = () => {
         setQuantity(quantity + value);
     };
 
-    const productImages = product?.images || [];
+    const productImages = product?.media || [];
 
     const carouselSettings = {
         infinite: true,
@@ -99,6 +110,185 @@ const Product = () => {
         arrows: true,
     };
 
+    const renderWeightBreakdown = () => {
+        return (
+            <div className="mt-8">
+            <h2 className="text-2xl font-bold mb-4">Weight Breakdown</h2>
+            <div className="flex flex-col space-y-4">
+              <div className="flex justify-between">
+                <span>Diamond Weight:</span>
+                <span>{product?.weight?.DiamondWeight} carats</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Gross Weight:</span>
+                <span>{product?.weight?.GrossWeight} grams</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Solitaire Weight:</span>
+                <span>{product?.weight?.SolitaireWeight} carats</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Stone Weight:</span>
+                <span>{product?.weight?.StoneWeight} carats</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Net Weight:</span>
+                <span>{product?.weight?.netWeight} grams</span>
+              </div>
+            </div>
+          </div>
+          
+        );
+      };
+    
+      const renderPriceBreakdown = () => {
+        const makingCharges = product?.weight?.GrossWeight * product?.makingcharges;
+        const diamondAmount = 60000 * product?.weight?.DiamondWeight;
+        let solAmount = 0;
+        if (product?.weight?.SolitaireWeight <= 0.7) {
+          solAmount = product?.weight?.SolitaireWeight * 100000;
+        } else if (product?.weight?.SolitaireWeight > 0.7 && product?.weight?.SolitaireWeight < 1) {
+          solAmount = product?.weight?.SolitaireWeight * 140000;
+        } else {
+          solAmount = product?.weight?.SolitaireWeight * 200000;
+        }
+        const goldPrice = product?.weight?.netWeight * (selectedMake === '14' ? 3910 : (selectedMake === '18' ? 4910 : 5990));
+        const stonePrice = product?.weight?.StoneWeight * 15000;
+      
+        const mrp = makingCharges + diamondAmount + solAmount + goldPrice + stonePrice;
+        const discount = product?.discount ? parseFloat(product?.discount) : 0;
+        const netMrp = mrp - discount;
+        const gst = 0.03 * netMrp;
+        const finalAmount = netMrp + gst;
+        useEffect(() => {
+
+            console.log(finalAmount);
+            setprice(finalAmount)
+        }, [product])
+        
+      
+        return (
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold mb-4">Price Breakdown</h2>
+            <div className="flex flex-col space-y-4">
+              <div className="flex justify-between">
+                <span>Total Making Charges:</span>
+                <span>₹ {makingCharges}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Diamond Amount (IJSI):</span>
+                <span>₹ {diamondAmount}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Solitaire Amount:</span>
+                <span>₹ {solAmount}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>MRP:</span>
+                <span>₹ {mrp}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Discount:</span>
+                <span>₹ {discount}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Net MRP:</span>
+                <span>₹ {netMrp}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>GST (3%):</span>
+                <span>₹ {gst}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Final Amount:</span>
+                <span>₹ {finalAmount}</span>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const ProductDropdowns = () => {
+        const [isMakeDropdownOpen, setIsMakeDropdownOpen] = useState(false);
+        const [isColorDropdownOpen, setIsColorDropdownOpen] = useState(false);
+      
+        const toggleMakeDropdown = () => {
+          setIsMakeDropdownOpen(!isMakeDropdownOpen);
+          setIsColorDropdownOpen(false);
+        };
+      
+        const toggleColorDropdown = () => {
+          setIsColorDropdownOpen(!isColorDropdownOpen);
+          setIsMakeDropdownOpen(false);
+        };
+      
+        const handleMakeSelect = (make) => {
+          setSelectedMake(make);
+          setIsMakeDropdownOpen(false);
+        };
+      
+        const handleColorSelect = (color) => {
+          setSelectedColor(color);
+          setIsColorDropdownOpen(false);
+        };
+      
+        return (
+          <div className="flex w-full relative">
+            <div className="relative w-1/2">
+              <label htmlFor="make">Select Make:</label>
+              <div className="dropdown-container relative cursor-pointer">
+                <button
+                  className={`border border-gray-200 w-40 p-2 rounded-lg hover:bg-teal-500 hover:text-white dropdown-header ${isMakeDropdownOpen ? 'active' : ''}`}
+                  onClick={toggleMakeDropdown}
+                >
+                  {selectedMake === '14' && '14 Karat'}
+                  {selectedMake === '18' && '18 Karat'}
+                  {selectedMake === '22' && '22 Karat'}
+                </button>
+                {isMakeDropdownOpen && (
+                  <div className="dropdown-list absolute top-full left-0 bg-white shadow-md rounded-md mt-2 w-40">
+                    {product?.possiblemakes.map((make) => (
+                      <div
+                        key={make}
+                        className={`dropdown-item py-2 px-4 ${selectedMake === make ? 'bg-gray-200' : ''}`}
+                        onClick={() => handleMakeSelect(make)}
+                      >
+                        {make} Karat
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="relative w-1/2">
+              <label htmlFor="color">Select Color:</label>
+              <div className="dropdown-container relative cursor-pointer">
+                <button
+                  className={`border border-gray-200 w-40 p-2 rounded-lg hover:bg-teal-500 hover:text-white  ${isColorDropdownOpen ? 'active' : ''}`}
+                  onClick={toggleColorDropdown}
+                >
+                  {selectedColor === 'yellow' && 'Yellow'}
+                  {selectedColor === 'white' && 'White'}
+                  {selectedColor === 'rose' && 'Rose'}
+                </button>
+                {isColorDropdownOpen && (
+                  <div className="dropdown-list absolute top-full left-0 bg-white shadow-md rounded-md mt-2 w-40">
+                    {product?.possiblecolors.map((color) => (
+                      <div
+                        key={color}
+                        className={`dropdown-item py-2 px-4 ${selectedColor === color ? 'bg-gray-200' : ''}`}
+                        onClick={() => handleColorSelect(color)}
+                      >
+                        {color}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      };
     return (
         <div>
             <Navbar />
@@ -125,24 +315,17 @@ const Product = () => {
                 </div>
 
                 <div className="w-full lg:w-1/2 p-8 rounded-lg">
-                    <h1 className="text-3xl font-bold mb-4">{product?.productName}</h1>
+                    <h1 className="text-3xl font-bold mb-4">{product?.name}</h1>
                     <p className="text-lg text-gray-700 mb-4">
                         {product?.description}
                     </p>
 
-                    <div className="container mx-auto mt-8">
-                        <h2 className="text-2xl font-bold mb-4">Additional Details</h2>
-                        <ul className="list-disc pl-6">
-                            {product?.additionalDetails?.map((message, index) => (
-                                <li key={index} className="text-lg text-gray-700">
-                                    {message}
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
+                    
 
-                    <div className="mb-4 w-full px-4 flex items-center justify-between border border-black py-2">
-                        <span className="text-xl font-bold text-black">₹ {product?.price}</span>
+                    {ProductDropdowns()}
+
+                    <div className="m-4 w-full px-4 flex items-center justify-between border border-black py-2">
+                        <span className="text-xl font-bold text-black">₹ {price}</span>
                         <div className="flex items-center">
                             <label htmlFor="quantity" className="mr-2">
                                 Quantity:
@@ -169,6 +352,12 @@ const Product = () => {
                         </div>
                     </div>
 
+                    {renderWeightBreakdown()}
+
+                    {renderPriceBreakdown()}
+
+                    
+
                     <div className="flex items-center space-x-4 w-full">
                         <button
                             className={`w-1/2 bg-teal-500 text-white px-6 py-2 rounded ${isWishlistSelected ? 'bg-red-500' : ''
@@ -178,8 +367,8 @@ const Product = () => {
                             <FontAwesomeIcon icon={faHeart} className="mr-2" />
                             {isWishlistSelected ? 'Remove from Wishlist' : 'Add to Wishlist'}
                         </button>
-                        <button className="w-1/2 bg-black text-white px-6 py-2 rounded">
-                            <FontAwesomeIcon icon={faCartPlus} className="mr-2" onClick={handleAddToCart} />
+                        <button className="w-1/2 bg-black text-white px-6 py-2 rounded" onClick={handleAddToCart} >
+                            <FontAwesomeIcon icon={faCartPlus} className="mr-2" />
                             Add to Cart
                         </button>
                     </div>
@@ -187,37 +376,11 @@ const Product = () => {
                     <div className="mt-8">
                         <h2 className="text-2xl font-bold mb-4">Category</h2>
                         <div className="flex space-x-4">
-                            {product?.category?.map((category, index) => (
+                            {product?.subcategory?.map((category, index) => (
                                 <span key={index} className="bg-gray-200 px-4 py-2 rounded">
                                     {category}
                                 </span>
                             ))}
-                        </div>
-                    </div>
-
-                    <div className="mt-8">
-                        <h2 className="text-2xl font-bold mb-4">Price Breakdown</h2>
-                        <div className="flex flex-col space-y-4">
-                            <div className="flex justify-between">
-                                <span>Gold Weight:</span>
-                                <span>{product?.priceBreakdown?.goldWeight}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>Making Charges:</span>
-                                <span>{product?.priceBreakdown?.makingCharges}</span>
-                            </div>
-                            {/* <div className="flex justify-between">
-                                <span>Surplus Charges:</span>
-                                <span>{product?.priceBreakdown?.surplusCharges}</span>
-                            </div> */}
-                            <div className="flex justify-between">
-                                <span>Diamond Rate:</span>
-                                <span>{product?.priceBreakdown?.diamondRate}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>Discount:</span>
-                                <span>{product?.priceBreakdown?.discount}</span>
-                            </div>
                         </div>
                     </div>
                 </div>

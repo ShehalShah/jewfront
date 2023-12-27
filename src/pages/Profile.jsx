@@ -37,23 +37,25 @@ const Profile = () => {
     const fetchCartAndWishlist = async () => {
       if (user) {
         try {
-          // Fetch cart items
-          const cartItemDocs = await Promise.all(user.cart.map(async productId => {
+
+          if(user?.cart){
+          const cartItemDocs = await Promise.all(user?.cart.map(async productId => {
             const productDocRef = doc(database, 'products', productId);
             const productDocSnapshot = await getDoc(productDocRef);
             return { id: productDocSnapshot.id, ...productDocSnapshot.data() };
           }));
           setCartItems(cartItemDocs)
           const total = cartItemDocs.reduce((acc, item) => acc + parseFloat(item.price), 0);
-          setTotalPrice(total);
-
-          // Fetch wishlist items
-          const wishlistItemDocs = await Promise.all(user.wishlist.map(async productId => {
+          setTotalPrice(total);}
+          
+          if(user?.wishlist){
+          const wishlistItemDocs = await Promise.all(user?.wishlist.map(async productId => {
             const productDocRef = doc(database, 'products', productId);
             const productDocSnapshot = await getDoc(productDocRef);
             return { id: productDocSnapshot.id, ...productDocSnapshot.data() };
           }));
           setWishlistItems(wishlistItemDocs);
+        }
         } catch (error) {
           console.error('Error fetching cart and wishlist:', error.message);
         }
@@ -72,15 +74,15 @@ const Profile = () => {
               <div className="text-2xl font-bold mb-4">My Cart</div>
               {cartItems.map(item => (
                 <div key={item.id} className="mb-4 flex items-center">
-                  <img src={item.images[0]} alt={item.productName} className="w-16 h-16 object-cover rounded-md mr-4" />
+                  <img src={item.media[0]} alt={item.name} className="w-16 h-16 object-cover rounded-md mr-4" />
                   <div>
-                    <div className="text-lg font-bold">{item.productName}</div>
-                    <div className="text-gray-700">${item.price}</div>
+                    <div className="text-lg font-bold">{item.name}</div>
+                    <div className="text-gray-700">₹ {item?.price}</div>
                     <div className="text-gray-500">Product ID: {item.id}</div>
                   </div>
                 </div>
               ))}
-              <div className="text-xl font-bold mt-4">Total Price: ${totalPrice?.toFixed(2)}</div>
+              <div className="text-xl font-bold mt-4">Total Price: ₹ {totalPrice?.toFixed(2)}</div>
               <button
                 className="bg-teal-500 text-white px-6 py-2 rounded mt-4"
               >
@@ -107,7 +109,7 @@ const Profile = () => {
                       <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded-md mr-4" />
                       <div>
                         <div className="text-lg font-bold">{item.name}</div>
-                        <div className="text-gray-700">${item.price}</div>
+                        <div className="text-gray-700">₹ {item.price}</div>
                       </div>
                     </div>
                   ))}
@@ -123,10 +125,10 @@ const Profile = () => {
             <div className="text-2xl font-bold mb-2">My Wishlist</div>
             {wishlistItems.map(item => (
               <div key={item.id} className="mb-4 flex items-center border-b pb-4">
-                <img src={item.images[0]} alt={item.productName} className="w-16 h-16 object-cover rounded-md mr-4" />
+                <img src={item.media[0]} alt={item.name} className="w-16 h-16 object-cover rounded-md mr-4" />
                 <div className="flex-1">
-                  <div className="text-lg font-bold">{item.productName}</div>
-                  <div className="text-gray-700">${item.price}</div>
+                  <div className="text-lg font-bold">{item.name}</div>
+                  <div className="text-gray-700">₹ {item.price}</div>
                   <button className="bg-teal-500 text-white px-4 py-1 rounded mt-2">
                     Add to Cart
                   </button>
@@ -178,7 +180,7 @@ const Profile = () => {
                 <div
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`cursor-pointer p-2 mb-2 rounded-md ${activeTab === tab.id ? 'bg-teal-300' : 'hover:bg-gray-100'}`}
+                  className={`cursor-pointer p-2 mb-2 rounded-md ₹ {activeTab === tab.id ? 'bg-teal-300' : 'hover:bg-gray-100'}`}
                 >
                   {tab.label}
                 </div>

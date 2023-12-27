@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import { useNavigate } from 'react-router-dom';
 import { database,storage } from '../firebaseConfig';
-import { doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, getDoc, onSnapshot,collection,addDoc,updateDoc,arrayUnion } from 'firebase/firestore';
 import AddProduct from '../components/AddProduct';
 import Papa from 'papaparse'; 
 import { ref, uploadBytes, getDownloadURL,list} from 'firebase/storage';
@@ -78,7 +78,7 @@ const Admin = () => {
         "Sub Category":SubCategory,
         Description,
         "Standard Make": StandardMake,
-        "Possible makes": possibleMakes,
+        "possible makes": possibleMakes,
         "Standard Color of Metal": StandardColor,
         "Possible makes": possibleColors,
         "disocunt narration": discountNarration,
@@ -97,45 +97,56 @@ const Admin = () => {
         productID: ProductID,
         name: Name,
         category: Category,
-        subcategory: SubCategory.split(',').map((subcategory) => subcategory.trim()),
+        subcategory: SubCategory.split(',').map((subcategory) => subcategory.trim().toLowerCase()),
         description: Description,
-        standardmake: StandardMake,
+        standardmake: StandardMake.substring(0, 2),
         possiblemakes: possibleMakes.split(',').map((make) => make.trim()),
         standardcolor: StandardColor,
         possiblecolors: possibleColors.split(',').map((color) => color.trim()),
         discountnarration: discountNarration,
-        discount: parseFloat(discount.replace(/,/g, '')),
+        discount: parseFloat(discount.replace(/,/g, '')) || 0,
         weight: {
           GrossWeight: parseFloat(GrossWeight),
           DiamondWeight: parseFloat(DiamondWeight),
           SolitaireWeight: parseFloat(SolitaireWeight),
           StoneWeight: parseFloat(StoneWeight),
-          netWeight: parseFloat(netWeight.toFixed(2)), // Round to 2 decimal places
+          netWeight: parseFloat(netWeight.toFixed(2)), 
         },
         makingcharges: parseFloat(MakingChargesPerGm),
       };
     });
   };
 
-  const handleLogData = () => {
-    if (fileData) {
-      Papa.parse(fileData, {
-        header: true,
-        complete: (result) => {
-          result.data.pop();
-          console.log('Parsed Data:', result.data);
+const handleLogData = async () => {
+  if (fileData) {
+    Papa.parse(fileData, {
+      header: true,
+      complete: async (result) => {
+        result.data.pop();
+        console.log('Parsed Data:', result.data);
 
-          const firebaseData = processDataForFirebase(result.data);
-          console.log(firebaseData);
-        },
-        error: (error) => {
-          console.error('Error parsing file:', error.message);
-        },
-      });
-    } else {
-      console.error('No file selected.');
-    }
-  };
+        const firebaseData = processDataForFirebase(result.data);
+        console.log(firebaseData);
+
+        const productsCollection = collection(database, 'products');
+
+        for (const product of firebaseData) {
+          try {
+            await setDoc(doc(database, "products", product.productID), product);
+            console.log(`Product ${product.productID} added to Firestore.`);
+          } catch (error) {
+            console.error(`Error adding product ${product.productID} to Firestore:`, error.message);
+          }
+        }
+      },
+      error: (error) => {
+        console.error('Error parsing file:', error.message);
+      },
+    });
+  } else {
+    console.error('No file selected.');
+  }
+};
 
   const uploadAllFiles = async (files) => {
     const storageRef = ref(storage, 'products');
@@ -144,7 +155,7 @@ const Admin = () => {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const [productID, index] = file.name.split('_');
-      const fileType = file.type.split('/')[0]; // 'image' or 'video'
+      const fileType = file.type.split('/')[0];
       const filename = `${productID}_${index}.${fileType}`;
       const fileRef = ref(storageRef, filename);
   
@@ -182,22 +193,36 @@ const Admin = () => {
     }
   };
   
-  
-  
   const handleMediaChange = (e) => {
     const files = e.target.files;
     setMediaFiles(files);
   };
 
-  const handleMediaUpload = () => {
+
+  const handleMediaUpload = async () => {
     if (mediaFiles) {
-      uploadAllFiles(mediaFiles)
-        .then((fileURLs) => {
-          console.log('Media files uploaded successfully:', fileURLs);
-        })
-        .catch((error) => {
-          console.error('Error uploading media files:', error.message);
+      try {
+        const fileURLs = await uploadAllFiles(mediaFiles);
+  
+        // Update Firestore documents with the fileURLs
+        fileURLs.forEach(async ({ productID, downloadURL }) => {
+          const productDocRef = doc(database, 'products', productID);
+  
+          try {
+            await updateDoc(productDocRef, {
+              media: arrayUnion(downloadURL), // Assuming 'media' is the array field in the document
+            });
+  
+            console.log(`Media URLs added to the document with Product ID ${productID}`);
+          } catch (error) {
+            console.error(`Error updating document with Product ID ${productID}:`, error.message);
+          }
         });
+  
+        console.log('Media files uploaded successfully:', fileURLs);
+      } catch (error) {
+        console.error('Error uploading media files:', error.message);
+      }
     } else {
       console.error('No media files selected.');
     }
@@ -262,7 +287,7 @@ const Admin = () => {
           <div>
               <h2 className="text-2xl font-bold mb-2">Upload Images and Videos</h2>
               <input type="file" onChange={handleMediaChange} className="mb-2" multiple />
-              <button onClick={getAllImageDownloadURLs} className="bg-teal-500 text-white p-2 rounded hover:bg-teal-600 cursor-pointer">
+              <button onClick={handleMediaUpload} className="bg-teal-500 text-white p-2 rounded hover:bg-teal-600 cursor-pointer">
                 Upload Media Files
               </button>
             </div>

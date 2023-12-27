@@ -145,7 +145,10 @@ const Navbar = () => {
                                         <button className="block w-full hover:bg-gray-200 p-2" onClick={() => nav("/profile")}>
                                             Profile
                                         </button>
-                                        <button className='block w-full hover:bg-gray-200 p-2' onClick={async () => { sessionStorage.removeItem("user"); await signOut(auth); updateUser(null); }}>
+                                        {user.isAdmin && <button className="block w-full hover:bg-gray-200 p-2" onClick={() => nav("/admin")}>
+                                            Admin
+                                        </button>}
+                                        <button className='block w-full hover:bg-gray-200 p-2' onClick={async () => { sessionStorage.removeItem("user"); await signOut(auth); updateUser(null);nav("/") }}>
                                             <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" />
                                             Sign Out
                                         </button>
