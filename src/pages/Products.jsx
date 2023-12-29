@@ -181,8 +181,6 @@ const Product = () => {
     const gst = 0.03 * netMrp;
     const finalAmount = netMrp + gst;
     useEffect(() => {
-
-      console.log(finalAmount);
       setprice(finalAmount)
     }, [product])
 
