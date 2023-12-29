@@ -110,34 +110,27 @@ const Product = () => {
     arrows: true,
   };
 
+  const renderBreakdownItem = (label, value, condition = true) => {
+    return condition ? (
+      <div className="flex justify-between">
+        <span className="font-medium">{label}:</span>
+        <span className="text-black font-bold font-sans">{value}</span>
+      </div>
+    ) : null;
+  };
+
   const renderWeightBreakdown = () => {
     return (
-      <div className="mt-8">
+      <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
         <h2 className="text-2xl font-bold mb-4">Weight Breakdown</h2>
         <div className="flex flex-col space-y-4">
-          <div className="flex justify-between">
-            <span>Diamond Weight:</span>
-            <span>{product?.weight?.DiamondWeight} carats</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Gross Weight:</span>
-            <span>{product?.weight?.GrossWeight} grams</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Solitaire Weight:</span>
-            <span>{product?.weight?.SolitaireWeight} carats</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Stone Weight:</span>
-            <span>{product?.weight?.StoneWeight} carats</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Net Weight:</span>
-            <span>{product?.weight?.netWeight} grams</span>
-          </div>
+          {renderBreakdownItem("Diamond Weight", `${product?.weight?.DiamondWeight} carats`)}
+          {renderBreakdownItem("Gross Weight", `${product?.weight?.GrossWeight} grams`)}
+          {renderBreakdownItem("Solitaire Weight", `${product?.weight?.SolitaireWeight} carats`)}
+          {renderBreakdownItem("Stone Weight", `${product?.weight?.StoneWeight} carats`)}
+          {renderBreakdownItem("Net Weight", `${product?.weight?.netWeight} grams`)}
         </div>
       </div>
-
     );
   };
 
@@ -182,7 +175,7 @@ const Product = () => {
     const finalAmount = netMrp + gst;
     useEffect(() => {
       setprice(finalAmount)
-    }, [product])
+    }, [product,finalAmount])
 
     const fetchRates = () => {
       try {
@@ -214,59 +207,19 @@ const Product = () => {
     }, []);
 
     return (
-      <div className="mt-8">
-        <h2 className="text-2xl font-bold mb-4">Price Breakdown</h2>
-        <div className="flex flex-col space-y-4">
-          {makingCharges > 0 && (
-            <div className="flex justify-between">
-              <span>Total Making Charges:</span>
-              <span>₹ {makingCharges}</span>
-            </div>
-          )}
-          {diamondAmount > 0 && (
-            <div className="flex justify-between">
-              <span>Diamond Amount (IJSI):</span>
-              <span>₹ {diamondAmount}</span>
-            </div>
-          )}
-          {solAmount > 0 && (
-            <div className="flex justify-between">
-              <span>Solitaire Amount:</span>
-              <span>₹ {solAmount}</span>
-            </div>
-          )}
-          {mrp > 0 && (
-            <div className="flex justify-between">
-              <span>MRP:</span>
-              <span>₹ {mrp}</span>
-            </div>
-          )}
-          {discount > 0 && (
-            <div className="flex justify-between">
-              <span>Discount:</span>
-              <span>₹ {discount}</span>
-            </div>
-          )}
-          {netMrp > 0 && (
-            <div className="flex justify-between">
-              <span>Net MRP:</span>
-              <span>₹ {netMrp}</span>
-            </div>
-          )}
-          {gst > 0 && (
-            <div className="flex justify-between">
-              <span>GST (3%):</span>
-              <span>₹ {gst?.toFixed(2)}</span>
-            </div>
-          )}
-          {finalAmount > 0 && (
-            <div className="flex justify-between">
-              <span>Final Amount:</span>
-              <span>₹ {finalAmount}</span>
-            </div>
-          )}
-        </div>
+      <div className="mt-8 mb-4 bg-white p-6 rounded-lg shadow-md">
+      <h2 className="text-2xl font-bold mb-4">Price Breakdown</h2>
+      <div className="flex flex-col space-y-4">
+        {renderBreakdownItem("Total Making Charges", `₹ ${makingCharges}`, makingCharges > 0)}
+        {renderBreakdownItem("Diamond Amount (IJSI)", `₹ ${diamondAmount}`, diamondAmount > 0)}
+        {renderBreakdownItem("Solitaire Amount", `₹ ${solAmount}`, solAmount > 0)}
+        {renderBreakdownItem("MRP", `₹ ${mrp}`, mrp > 0)}
+        {renderBreakdownItem("Discount", `₹ ${discount}`, discount > 0)}
+        {renderBreakdownItem("Net MRP", `₹ ${netMrp}`, netMrp > 0)}
+        {renderBreakdownItem("GST (3%)", `₹ ${gst?.toFixed(2)}`, gst > 0)}
+        {renderBreakdownItem("Final Amount", `₹ ${finalAmount}`, finalAmount > 0)}
       </div>
+    </div>
 
     );
   };
@@ -388,7 +341,7 @@ const Product = () => {
           {ProductDropdowns()}
 
           <div className="m-4 w-full px-4 flex items-center justify-between border border-black py-2">
-            <span className="text-xl font-bold text-black">₹ {price}</span>
+            <span className="text-xl font-bold text-black  font-sans">₹ {price}</span>
             <div className="flex items-center">
               <label htmlFor="quantity" className="mr-2">
                 Quantity:
