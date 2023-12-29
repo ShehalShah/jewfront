@@ -1,18 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import { useNavigate } from 'react-router-dom';
-import { database,storage } from '../firebaseConfig';
-import { doc, setDoc, getDoc, onSnapshot,collection,addDoc,updateDoc,arrayUnion } from 'firebase/firestore';
+import { database, storage } from '../firebaseConfig';
+import { doc, setDoc, getDoc, onSnapshot, collection, addDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import AddProduct from '../components/AddProduct';
-import Papa from 'papaparse'; 
-import { ref, uploadBytes, getDownloadURL,list} from 'firebase/storage';
+import Papa from 'papaparse';
+import { ref, uploadBytes, getDownloadURL, list } from 'firebase/storage';
 
 const Admin = () => {
   const user = JSON.parse(sessionStorage.getItem('user'));
   const [activeTab, setActiveTab] = useState('profile');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [goldRate, setGoldRate] = useState(0);
-  const [fileData, setFileData] = useState(null); 
+  const [goldRates, setGoldRates] = useState({
+    '24karat': 0,
+    '22karat': 0,
+    '18karat': 0,
+    '14karat': 0,
+  });
+  const [diamondRates, setDiamondRates] = useState({
+    ijsi: 60000,
+    ghvssi: 90000,
+  });
+
+  const [stoneRate, setStoneRate] = useState(15000);
+
+  const [solitaireRates, setSolitaireRates] = useState({
+    upTo05ct: 100000,
+    gt05ctLt1ct: 140000,
+    gt1ct: 200000,
+  });
+  const [fileData, setFileData] = useState(null);
   const [mediaFiles, setMediaFiles] = useState(null);
   const nav = useNavigate();
 
@@ -23,7 +41,7 @@ const Admin = () => {
     { id: 'editGoldRate', label: 'Edit Gold Rate' },
     { id: 'manageOrders', label: 'Manage Orders' },
     { id: 'analytics', label: 'Analytics' },
-    { id: 'uploadFile', label: 'Upload File' }, // Added a new tab for file upload
+    { id: 'uploadFile', label: 'Upload File' },
   ];
 
   useEffect(() => {
@@ -64,6 +82,51 @@ const Admin = () => {
     return () => unsubscribe();
   }, []);
 
+  const fetchRates = () => {
+    try {
+      const ratesDocRef = doc(database, 'gold', 'diamondAndStoneRates');
+      const unsubscribe = onSnapshot(ratesDocRef, (ratesSnapshot) => {
+        if (ratesSnapshot.exists()) {
+          const ratesData = ratesSnapshot.data();
+          setDiamondRates(ratesData.diamondRates);
+          setStoneRate(ratesData.stoneRate);
+          setSolitaireRates(ratesData.solitaireRates);
+          setGoldRates(ratesData.goldRates || {
+            '24karat': 0,
+            '22karat': 0,
+            '18karat': 0,
+            '14karat': 0,
+          });
+        }
+      });
+  
+      return unsubscribe;
+    } catch (error) {
+      console.error('Error fetching rates:', error.message);
+    }
+  };
+  
+  const updateRates = async () => {
+    try {
+      const ratesDocRef = doc(database, 'gold', 'diamondAndStoneRates');
+      await setDoc(ratesDocRef, {
+        diamondRates,
+        stoneRate,
+        solitaireRates,
+        goldRates, 
+      });
+      console.log('Rates updated successfully!');
+    } catch (error) {
+      console.error('Error updating rates:', error.message);
+    }
+  };
+  
+  useEffect(() => {
+    const unsubscribe = fetchRates();
+
+    return () => unsubscribe();
+  }, []);
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     setFileData(file);
@@ -72,10 +135,10 @@ const Admin = () => {
   const processDataForFirebase = (data) => {
     return data.map((item) => {
       const {
-        "Product ID":ProductID,
+        "Product ID": ProductID,
         Name,
         Category,
-        "Sub Category":SubCategory,
+        "Sub Category": SubCategory,
         Description,
         "Standard Make": StandardMake,
         "possible makes": possibleMakes,
@@ -89,10 +152,10 @@ const Admin = () => {
         "Stone Weight": StoneWeight,
         "Making Charges Per Gm": MakingChargesPerGm,
       } = item;
-      
+
       const netWeight =
         parseFloat(GrossWeight) - 0.2 * (parseFloat(DiamondWeight) + parseFloat(SolitaireWeight) + parseFloat(StoneWeight));
-  
+
       return {
         productID: ProductID,
         name: Name,
@@ -110,55 +173,55 @@ const Admin = () => {
           DiamondWeight: parseFloat(DiamondWeight),
           SolitaireWeight: parseFloat(SolitaireWeight),
           StoneWeight: parseFloat(StoneWeight),
-          netWeight: parseFloat(netWeight.toFixed(2)), 
+          netWeight: parseFloat(netWeight.toFixed(2)),
         },
         makingcharges: parseFloat(MakingChargesPerGm),
       };
     });
   };
 
-const handleLogData = async () => {
-  if (fileData) {
-    Papa.parse(fileData, {
-      header: true,
-      complete: async (result) => {
-        result.data.pop();
-        console.log('Parsed Data:', result.data);
+  const handleLogData = async () => {
+    if (fileData) {
+      Papa.parse(fileData, {
+        header: true,
+        complete: async (result) => {
+          result.data.pop();
+          console.log('Parsed Data:', result.data);
 
-        const firebaseData = processDataForFirebase(result.data);
-        console.log(firebaseData);
+          const firebaseData = processDataForFirebase(result.data);
+          console.log(firebaseData);
 
-        const productsCollection = collection(database, 'products');
+          const productsCollection = collection(database, 'products');
 
-        for (const product of firebaseData) {
-          try {
-            await setDoc(doc(database, "products", product.productID), product);
-            console.log(`Product ${product.productID} added to Firestore.`);
-          } catch (error) {
-            console.error(`Error adding product ${product.productID} to Firestore:`, error.message);
+          for (const product of firebaseData) {
+            try {
+              await setDoc(doc(database, "products", product.productID), product);
+              console.log(`Product ${product.productID} added to Firestore.`);
+            } catch (error) {
+              console.error(`Error adding product ${product.productID} to Firestore:`, error.message);
+            }
           }
-        }
-      },
-      error: (error) => {
-        console.error('Error parsing file:', error.message);
-      },
-    });
-  } else {
-    console.error('No file selected.');
-  }
-};
+        },
+        error: (error) => {
+          console.error('Error parsing file:', error.message);
+        },
+      });
+    } else {
+      console.error('No file selected.');
+    }
+  };
 
   const uploadAllFiles = async (files) => {
     const storageRef = ref(storage, 'products');
     const fileURLs = [];
-  
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const [productID, index] = file.name.split('_');
       const fileType = file.type.split('/')[0];
       const filename = `${productID}_${index}.${fileType}`;
       const fileRef = ref(storageRef, filename);
-  
+
       try {
         await uploadBytes(fileRef, file);
         const downloadURL = await getDownloadURL(fileRef);
@@ -167,15 +230,15 @@ const handleLogData = async () => {
         console.error(`Error uploading ${fileType} for Product ID ${productID}:`, error.message);
       }
     }
-  
+
     return fileURLs;
   };
-  
+
   const getAllImageDownloadURLs = async (productID) => {
     try {
       const storageRef = ref(storage, 'products', String(100));
       const listResult = await list(storageRef);
-  
+
       const downloadURLs = await Promise.all(
         listResult.items
           .filter((item) => item.name.startsWith(`100_`))
@@ -184,7 +247,7 @@ const handleLogData = async () => {
             return { fileName: item.name, downloadURL };
           })
       );
-  
+
       console.log('Download URLs for Product ID', productID, ':', downloadURLs);
       return downloadURLs;
     } catch (error) {
@@ -192,7 +255,7 @@ const handleLogData = async () => {
       return [];
     }
   };
-  
+
   const handleMediaChange = (e) => {
     const files = e.target.files;
     setMediaFiles(files);
@@ -203,22 +266,22 @@ const handleLogData = async () => {
     if (mediaFiles) {
       try {
         const fileURLs = await uploadAllFiles(mediaFiles);
-  
+
         // Update Firestore documents with the fileURLs
         fileURLs.forEach(async ({ productID, downloadURL }) => {
           const productDocRef = doc(database, 'products', productID);
-  
+
           try {
             await updateDoc(productDocRef, {
               media: arrayUnion(downloadURL), // Assuming 'media' is the array field in the document
             });
-  
+
             console.log(`Media URLs added to the document with Product ID ${productID}`);
           } catch (error) {
             console.error(`Error updating document with Product ID ${productID}:`, error.message);
           }
         });
-  
+
         console.log('Media files uploaded successfully:', fileURLs);
       } catch (error) {
         console.error('Error uploading media files:', error.message);
@@ -238,9 +301,9 @@ const handleLogData = async () => {
         );
       case 'editGoldRate':
         return (
-          <div>
-            <div className="mb-4">
-              <h2 className="text-2xl font-bold mb-2">Edit Gold Rate</h2>
+          <div className="flex flex-col space-y-8">
+            <div className="bg-white p-6 rounded-md shadow-md">
+              <h2 className="text-2xl font-bold mb-4">Edit Gold Rate</h2>
               <p className="mb-2">Current Gold Rate: ${goldRate}</p>
               <div className="flex items-center">
                 <input
@@ -248,7 +311,7 @@ const handleLogData = async () => {
                   placeholder="Enter new gold rate"
                   value={goldRate}
                   onChange={(e) => setGoldRate(e.target.value)}
-                  className="mr-2 p-2 border border-gray-300 rounded"
+                  className="mr-2 p-2 border border-gray-300 rounded w-36"
                 />
                 <button
                   onClick={() => updateGoldRate(goldRate)}
@@ -258,7 +321,148 @@ const handleLogData = async () => {
                 </button>
               </div>
             </div>
+
+            <div className="bg-white p-6 rounded-md shadow-md">
+              <h2 className="text-2xl font-bold mb-4">Edit Gold Rate</h2>
+              <div className="flex flex-col space-y-4">
+                <div className="flex justify-between">
+                  <span>24 karat Gold Rate:</span>
+                  <span>
+                    <input
+                      type="number"
+                      value={goldRates['24karat']}
+                      onChange={(e) => setGoldRates({ ...goldRates, '24karat': e.target.value })}
+                      className="p-2 border border-gray-300 rounded w-36"
+                    />
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>22 karat Gold Rate:</span>
+                  <span>
+                    <input
+                      type="number"
+                      value={goldRates['22karat']}
+                      onChange={(e) => setGoldRates({ ...goldRates, '22karat': e.target.value })}
+                      className="p-2 border border-gray-300 rounded w-36"
+                    />
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>18 karat Gold Rate:</span>
+                  <span>
+                    <input
+                      type="number"
+                      value={goldRates['18karat']}
+                      onChange={(e) => setGoldRates({ ...goldRates, '18karat': e.target.value })}
+                      className="p-2 border border-gray-300 rounded w-36"
+                    />
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>14 karat Gold Rate:</span>
+                  <span>
+                    <input
+                      type="number"
+                      value={goldRates['14karat']}
+                      onChange={(e) => setGoldRates({ ...goldRates, '14karat': e.target.value })}
+                      className="p-2 border border-gray-300 rounded w-36"
+                    />
+                  </span>
+                </div>
+              </div>
+            </div>
+
+
+            <div className="bg-white p-6 rounded-md shadow-md">
+              <h2 className="text-2xl font-bold mb-4">Edit Diamond Rates</h2>
+              <div className="flex flex-col space-y-4">
+                <div className="flex justify-between">
+                  <span>IJSI Diamond Rate:</span>
+                  <span>
+                    <input
+                      type="number"
+                      value={diamondRates.ijsi}
+                      onChange={(e) => setDiamondRates({ ...diamondRates, ijsi: e.target.value })}
+                      className="p-2 border border-gray-300 rounded w-36"
+                    />
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>GH-VSSI Diamond Rate:</span>
+                  <span>
+                    <input
+                      type="number"
+                      value={diamondRates.ghvssi}
+                      onChange={(e) => setDiamondRates({ ...diamondRates, ghvssi: e.target.value })}
+                      className="p-2 border border-gray-300 rounded w-36"
+                    />
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-md shadow-md">
+              <h2 className="text-2xl font-bold mb-4">Edit Stone Rate</h2>
+              <div className="flex justify-between">
+                <span>Stone Rate:</span>
+                <span>
+                  <input
+                    type="number"
+                    value={stoneRate}
+                    onChange={(e) => setStoneRate(e.target.value)}
+                    className="p-2 border border-gray-300 rounded w-36"
+                  />
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-md shadow-md">
+              <h2 className="text-2xl font-bold mb-4">Edit Solitaire Rates</h2>
+              <div className="flex flex-col space-y-4">
+                <div className="flex justify-between">
+                  <span>Up to 0.70 ct Solitaire Rate:</span>
+                  <span>
+                    <input
+                      type="number"
+                      value={solitaireRates.upTo05ct}
+                      onChange={(e) => setSolitaireRates({ ...solitaireRates, upTo05ct: e.target.value })}
+                      className="p-2 border border-gray-300 rounded w-36"
+                    />
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>0.70 ct to 1 ct Solitaire Rate:</span>
+                  <span>
+                    <input
+                      type="number"
+                      value={solitaireRates.gt05ctLt1ct}
+                      onChange={(e) => setSolitaireRates({ ...solitaireRates, gt05ctLt1ct: e.target.value })}
+                      className="p-2 border border-gray-300 rounded w-36"
+                    />
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>More than 1 ct Solitaire Rate:</span>
+                  <span>
+                    <input
+                      type="number"
+                      value={solitaireRates.gt1ct}
+                      onChange={(e) => setSolitaireRates({ ...solitaireRates, gt1ct: e.target.value })}
+                      className="p-2 border border-gray-300 rounded w-36"
+                    />
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={updateRates}
+              className="bg-teal-500 text-white p-4 rounded hover:bg-teal-600 cursor-pointer"
+            >
+              Update Rates
+            </button>
           </div>
+
         );
       case 'manageOrders':
         return (
@@ -278,13 +482,13 @@ const handleLogData = async () => {
         return (
           <div className='flex flex-col gap-5'>
             <div>
-            <h2 className="text-2xl font-bold mb-2">Upload File</h2>
-            <input type="file" onChange={handleFileChange} className="mb-2" />
-            <button onClick={handleLogData} className="bg-teal-500 text-white p-2 rounded hover:bg-teal-600 cursor-pointer">
-              Log Data
-            </button>
-          </div>
-          <div>
+              <h2 className="text-2xl font-bold mb-2">Upload File</h2>
+              <input type="file" onChange={handleFileChange} className="mb-2" />
+              <button onClick={handleLogData} className="bg-teal-500 text-white p-2 rounded hover:bg-teal-600 cursor-pointer">
+                Log Data
+              </button>
+            </div>
+            <div>
               <h2 className="text-2xl font-bold mb-2">Upload Images and Videos</h2>
               <input type="file" onChange={handleMediaChange} className="mb-2" multiple />
               <button onClick={handleMediaUpload} className="bg-teal-500 text-white p-2 rounded hover:bg-teal-600 cursor-pointer">
