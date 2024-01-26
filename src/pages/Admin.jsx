@@ -5,9 +5,11 @@ import { database, storage } from '../firebaseConfig';
 import { doc, setDoc, getDoc, onSnapshot, collection, addDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import AddProduct from '../components/AddProduct';
 import Papa from 'papaparse';
-import { ref, uploadBytes, getDownloadURL, list } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, list, listAll } from 'firebase/storage';
+import { Oval } from 'react-loader-spinner'
 
 const Admin = () => {
+  const [loader, setLoader] = useState(false);
   const user = JSON.parse(sessionStorage.getItem('user'));
   const [activeTab, setActiveTab] = useState('profile');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -99,13 +101,13 @@ const Admin = () => {
           });
         }
       });
-  
+
       return unsubscribe;
     } catch (error) {
       console.error('Error fetching rates:', error.message);
     }
   };
-  
+
   const updateRates = async () => {
     try {
       const ratesDocRef = doc(database, 'gold', 'diamondAndStoneRates');
@@ -113,14 +115,14 @@ const Admin = () => {
         diamondRates,
         stoneRate,
         solitaireRates,
-        goldRates, 
+        goldRates,
       });
       console.log('Rates updated successfully!');
     } catch (error) {
       console.error('Error updating rates:', error.message);
     }
   };
-  
+
   useEffect(() => {
     const unsubscribe = fetchRates();
 
@@ -265,9 +267,9 @@ const Admin = () => {
   const handleMediaUpload = async () => {
     if (mediaFiles) {
       try {
+        setLoader(true);
         const fileURLs = await uploadAllFiles(mediaFiles);
 
-        // Update Firestore documents with the fileURLs
         fileURLs.forEach(async ({ productID, downloadURL }) => {
           const productDocRef = doc(database, 'products', productID);
 
@@ -286,10 +288,51 @@ const Admin = () => {
       } catch (error) {
         console.error('Error uploading media files:', error.message);
       }
+      finally {
+        setLoader(false);
+      }
     } else {
       console.error('No media files selected.');
     }
   };
+
+  const updateProductsWithImageURLs = async () => {
+    const storageRef = ref(storage, 'products');
+
+    try {
+      // Get a list of all items (files) in the storage folder
+      const items = await listAll(storageRef);
+
+      // Iterate through each item (file) in the storage folder
+      for (const item of items.items) {
+        const filename = item.name;
+
+        // Extract the product ID from the filename (assuming it follows the pattern "100_1.jpg")
+        const productId = filename.split('_')[0];
+
+        // Get the download URL of the image
+        const downloadURL = await getDownloadURL(item);
+
+        // Update the Firestore document with the image URL
+        const productDocRef = doc(database, 'products', productId);
+
+        try {
+          await updateDoc(productDocRef, {
+            media: arrayUnion(downloadURL),
+          });
+
+          console.log(`Media URL added to the document with Product ID ${productId}`);
+        } catch (error) {
+          console.error(`Error updating document with Product ID ${productId}:`, error.message);
+        }
+      }
+
+      console.log('Media URLs added to the documents successfully.');
+    } catch (error) {
+      console.error('Error listing files in storage:', error.message);
+    }
+  };
+
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -488,12 +531,27 @@ const Admin = () => {
                 Log Data
               </button>
             </div>
-            <div>
+            <div className=''>
               <h2 className="text-2xl font-bold mb-2">Upload Images and Videos</h2>
-              <input type="file" onChange={handleMediaChange} className="mb-2" multiple />
-              <button onClick={handleMediaUpload} className="bg-teal-500 text-white p-2 rounded hover:bg-teal-600 cursor-pointer">
-                Upload Media Files
-              </button>
+              <div className='flex'>
+                <input type="file" onChange={handleMediaChange} className="mb-2" multiple />
+                <button onClick={handleMediaUpload} className="bg-teal-500 text-white p-2 rounded hover:bg-teal-600 cursor-pointer">
+                  Upload Media Files
+                </button>
+
+              </div>
+              {loader && (<div className='flex gap-3 items-center'>
+                <Oval
+                  visible={true}
+                  height="40"
+                  width="40"
+                  color="#4fa94d"
+                  ariaLabel="oval-loading"
+                  wrapperStyle={{}}
+                  wrapperClass=""
+                />
+                <span> Uploading file please wait...</span>
+              </div>)}
             </div>
           </div>
         );
