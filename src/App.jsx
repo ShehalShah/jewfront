@@ -8,6 +8,7 @@ import { UserProvider } from './context/UserContext';
 import Profile from './pages/Profile';
 import Admin from './pages/Admin';
 import Product from './pages/Products';
+import Category from './pages/Category';
 
 function App() {
 
@@ -64,6 +65,13 @@ function App() {
                 }
                 exact
                 path="/admin"
+              />
+              <Route
+                element={
+                    <Category />
+                }
+                exact
+                path="/category/:cat"
               />
          </Routes>
          </UserProvider>

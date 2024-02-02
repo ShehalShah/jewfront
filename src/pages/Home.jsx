@@ -126,9 +126,9 @@ const Home = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {products1.map((product) => (
               <div key={product.id} className="bg-white p-4 cursor-pointer shadow-md hover:shadow-2xl" onClick={()=>{navigate(`/product/${product.id}`);}}>
-                {product?.media && <img src={product?.media[0]} alt={product?.productName} className="w-full h-auto mb-4" />}
+                {product?.media ? <img src={product?.media[0]} alt="https://t3.ftcdn.net/jpg/03/45/05/92/360_F_345059232_CPieT8RIWOUk4JqBkkWkIETYAkmz2b75.jpg" className="w-full h-auto mb-4" />:<img src="https://t3.ftcdn.net/jpg/03/45/05/92/360_F_345059232_CPieT8RIWOUk4JqBkkWkIETYAkmz2b75.jpg" alt="https://t3.ftcdn.net/jpg/03/45/05/92/360_F_345059232_CPieT8RIWOUk4JqBkkWkIETYAkmz2b75.jpg" className="w-full h-auto mb-4" />}
                 <div className="text-lg font-bold">{product.name}</div>
-                <p className="text-gray-700">{product.description}</p>
+                <p className="text-gray-700">{product.description.split(' ').slice(0, 15).join(' ')}{(product.description.split(' ').length > 10 ? ' ...' : '')}</p>
               </div>
             ))}
           </div>

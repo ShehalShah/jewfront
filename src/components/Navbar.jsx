@@ -4,13 +4,14 @@ import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch, faUser, faShoppingCart, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useParams } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { signOut } from 'firebase/auth';
 import { auth, database } from '../firebaseConfig';
 import { doc, setDoc, getDoc, collection, updateDoc, onSnapshot } from "firebase/firestore";
 
 const Navbar = () => {
+    const { cat } = useParams();
     const user = JSON.parse(sessionStorage.getItem('user'));
     const { updateUser } = useUser();
     const [isOpen, setIsOpen] = useState(false);
@@ -64,7 +65,7 @@ const Navbar = () => {
         arrows: false,
     };
 
-    const handleCartClick=()=>{
+    const handleCartClick = () => {
         console.log("feh");
     }
 
@@ -148,41 +149,41 @@ const Navbar = () => {
                                         {user.isAdmin && <button className="block w-full hover:bg-gray-200 p-2" onClick={() => nav("/admin")}>
                                             Admin
                                         </button>}
-                                        <button className='block w-full hover:bg-gray-200 p-2' onClick={async () => { sessionStorage.removeItem("user"); await signOut(auth); updateUser(null);nav("/") }}>
+                                        <button className='block w-full hover:bg-gray-200 p-2' onClick={async () => { sessionStorage.removeItem("user"); await signOut(auth); updateUser(null); nav("/") }}>
                                             <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" />
                                             Sign Out
                                         </button>
                                     </div>
                             )}
                         </div>
-                        <FontAwesomeIcon icon={faShoppingCart} className="text-black mr-4 lg:py-2" onClick={handleCartClick}/>
+                        <FontAwesomeIcon icon={faShoppingCart} className="text-black mr-4 lg:py-2" onClick={handleCartClick} />
                     </div>
                 </div>
                 <div className={`lg:flex mt-4 px-20 items-center justify-center gap-10 ${isOpen ? 'block' : 'hidden'}`}>
-                    <a href="#" className="block mt-4 lg:inline-block lg:mt-0 text-black mr-4">
+                    <Link to="/category/rings" className={`block mt-4 lg:inline-block lg:mt-0 ${cat === 'rings' ? 'text-teal-500 underline' : 'text-black'} mr-4`}>
                         Rings
-                    </a>
-                    <a href="#" className="block mt-4 lg:inline-block lg:mt-0 text-black mr-4">
+                    </Link>
+                    <Link to="/category/earrings" className={`block mt-4 lg:inline-block lg:mt-0 ${cat === 'earrings' ? 'text-teal-500 underline' : 'text-black'} mr-4`}>
                         Earrings
-                    </a>
-                    <a href="#" className="block mt-4 lg:inline-block lg:mt-0 text-black mr-4">
+                    </Link>
+                    <Link to="/category/bangles" className={`block mt-4 lg:inline-block lg:mt-0 ${cat === 'bangles' ? 'text-teal-500 underline' : 'text-black'} mr-4`}>
                         Bangles
-                    </a>
-                    <a href="#" className="block mt-4 lg:inline-block lg:mt-0 text-black">
+                    </Link>
+                    <Link to="/category/solitaires" className={`block mt-4 lg:inline-block lg:mt-0 ${cat === 'solitaires' ? 'text-teal-500 underline' : 'text-black'}`}>
                         Solitaires
-                    </a>
-                    <a href="#" className="block mt-4 lg:inline-block lg:mt-0 text-black mr-4">
+                    </Link>
+                    <Link to="/category/mangalsutras" className={`block mt-4 lg:inline-block lg:mt-0 ${cat === 'mangalsutras' ? 'text-teal-500 underline' : 'text-black'} mr-4`}>
                         Mangalsutras
-                    </a>
-                    <a href="#" className="block mt-4 lg:inline-block lg:mt-0 text-black">
+                    </Link>
+                    <Link to="/category/necklaces" className={`block mt-4 lg:inline-block lg:mt-0 ${cat === 'necklaces' ? 'text-teal-500 underline' : 'text-black'}`}>
                         Necklaces
-                    </a>
-                    <a href="#" className="block mt-4 lg:inline-block lg:mt-0 text-black">
+                    </Link>
+                    <Link to="/category/more" className={`block mt-4 lg:inline-block lg:mt-0 ${cat === 'more' ? 'text-teal-500 underline' : 'text-black'}`}>
                         More
-                    </a>
-                    <a href="#" className="block mt-4 lg:inline-block lg:mt-0 text-black">
+                    </Link>
+                    <Link to="/category/gifting" className={`block mt-4 lg:inline-block lg:mt-0 ${cat === 'gifting' ? 'text-teal-500 underline' : 'text-black'}`}>
                         Gifting
-                    </a>
+                    </Link>
                 </div>
             </div>
         </nav>
