@@ -312,6 +312,12 @@ const Product = () => {
         <div className="w-full lg:w-1/2 mb-8 lg:mb-0">
           <Slider {...carouselSettings} className="mx-auto w-full h-full">
             {productImages.map((image, index) => (
+              image.includes('video') ? (
+                <video autoPlay loop className="w-full">
+                  <source src={image} type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+              ) : (
               <div key={index}>
                 <ReactImageMagnify {...{
                   smallImage: {
@@ -326,7 +332,7 @@ const Product = () => {
                   }
                 }} />
               </div>
-            ))}
+            )))}
           </Slider>
         </div>
 
